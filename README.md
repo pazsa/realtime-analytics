@@ -45,6 +45,7 @@ adapted from the course materials (NPL Realtime); the solutions are my own.
 
 Prospect things that are missing in current repo:
 
+- Interesting data source
 - Grafana dashboards on top of Prometheus
 - Redis as a shared cache, so it survives API restarts
 - An incident runbook for the stand
