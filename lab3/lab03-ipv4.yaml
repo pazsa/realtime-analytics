@@ -1,0 +1,4 @@
+services:
+  checker03:
+    extra_hosts:
+      - "npl-realtime1.kanelbulle.xyz:94.156.189.47"

@@ -1,0 +1,46 @@
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+python:
+   CLICKHOUSE_URL=http://127.0.0.1:18132 uv run --frozen uvicorn app:app --host 127.0.0.1 --port 8000 --workers 1 --no-access-log
+
+build:
+    docker compose -f compose.yaml build api
+db:
+    docker compose -f compose.yaml up -d --wait clickhouse topic-init
+    docker compose -f compose.yaml exec -T clickhouse clickhouse-client --user lab02-admin --password lab02-local --query 'CREATE DATABASE IF NOT EXISTS lab02'
+file path:
+    docker compose exec -T clickhouse clickhouse-client --user lab02-admin --password lab02-local --database lab02 --multiquery --echo --format PrettyCompact < {{quote(path)}}
+
+setup:
+    @just file sql/init-db-users.sql
+    @just file sql/create-tables.sql
+    @just file sql/grant-access.sql
+
+up:
+    docker compose -f compose.yaml -f lab04-compose.yaml up -d --build --wait api prometheus
+
+start: db setup up
+
+sql:
+    docker compose exec clickhouse clickhouse-client --user lab02-admin --password lab02-local --database lab02
+
+down:
+    docker compose -f compose.yaml -f lab04-compose.yaml down 
+
+wipe:
+    docker compose -f compose.yaml -f lab04-compose.yaml down -v 
+
+check *args:
+    docker compose -f compose.yaml -f lab04-compose.yaml -f lab04-checker-compose.yaml -f lab04-ipv4.yaml run --rm checker04 {{args}}
+
+stop-click:
+    docker compose -f compose.yaml stop clickhouse
+
+start-click:
+    docker compose -f compose.yaml start clickhouse
+
+stop-api:
+    docker compose -f compose.yaml stop api
+
+start-api:
+    docker compose -f compose.yaml start api

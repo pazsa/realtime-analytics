@@ -1,0 +1,7 @@
+for sql in sql/*.sql; do
+    envsubst < "$sql" | clickhouse-client \
+    -h "$click_host" \
+    -u "$click_user" \
+    --password "$click_pass" \
+    --multiline
+done

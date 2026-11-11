@@ -1,0 +1,22 @@
+groups:
+  - name: lab04
+    rules:
+      - alert: ApiUnavailable
+        expr: up{job="api"} == 0
+        for: 10s
+        annotations:
+          summary: Prometheus не может собрать метрики API
+          description: Проверьте состояние API, его логи и target в Prometheus.
+      - alert: ApiErrors
+        expr: |
+          sum(rate(lab04_http_requests_total{route="/v1/datasets/{dataset_id}/metrics/summary",status=~"5.."}[30s]))
+          /
+          sum(rate(lab04_http_requests_total{route="/v1/datasets/{dataset_id}/metrics/summary"}[30s]))
+          > 0.5
+        for: 10s
+        annotations:
+          summary: Summary for 30s returns status 5xx
+          description: Check Api status
+      # Добавьте ApiErrors:
+      # больше 50% ответов summary за 30 секунд возвращают 5xx.
+      # это держится for: 10s.

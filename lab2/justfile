@@ -1,0 +1,47 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+
+# Up ClickHouse и Create lesson04 db.
+up:
+    docker compose up -d --wait --wait-timeout 180
+    docker compose exec -T clickhouse clickhouse-client --user lab02_admin --password lab02_local --query 'CREATE DATABASE IF NOT EXISTS lab02'
+    docker compose pull kcat
+
+# look directly at kafka events stream
+watch:
+    docker compose run --rm -T kcat -b kafka:9092 -t lab02.orders -C -o beginning -J
+
+# run sql file
+file path:
+    docker compose exec -T clickhouse clickhouse-client --user lab02_admin --password lab02_local --database lab02 --multiquery --echo --format PrettyCompact < {{quote(path)}}
+
+# Create initial click tables 
+setup:
+    @just file click-tables-create/sql/01_create_raw.sql
+
+# Create current event tables
+current:
+    @just file click-tables-create/sql/02_create_current.sql
+
+# Create parameterized view
+parameter:
+   @just file click-tables-create/sql/03_parameterized_view.sql
+
+# Create cumulatative view 
+cumulatative:
+   @just file click-tables-create/sql/04_cumulatative_view.sql
+
+# Open sql console clickhouse-client with lab02 db.
+sql:
+    docker compose exec clickhouse clickhouse-client --user lab02_admin --password lab02_local --database lab02
+
+# compose status
+status:
+    docker compose ps
+# click logs
+logs:
+    docker compose logs --tail=60 clickhouse
+
+# Down compose
+down:
+    docker compose down

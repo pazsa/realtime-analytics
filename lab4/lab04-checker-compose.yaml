@@ -1,0 +1,9 @@
+services:
+  checker04:
+    image: ghcr.io/cra/checker-npl-rt1-lab04:2026
+    profiles:
+      - check
+    env_file:
+      - lab04-checker.env
+    stdin_open: true
+    tty: true

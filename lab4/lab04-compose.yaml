@@ -1,0 +1,21 @@
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=24h
+      - --storage.tsdb.retention.size=256MB
+    ports:
+      - "127.0.0.1:19004:9090"
+    volumes:
+      - ./lab04-prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./lab04-alerts.yml:/etc/prometheus/alerts.yml:ro
+      - lab04-prometheus-data:/prometheus
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+volumes:
+  lab04-prometheus-data:

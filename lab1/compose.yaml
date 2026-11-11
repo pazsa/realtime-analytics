@@ -1,0 +1,81 @@
+name: ghost-market
+services:
+  postgres:
+    image: postgres:16-alpine
+    command: [postgres, -c, wal_level=logical, -c, max_replication_slots=10, -c, max_wal_senders=10]
+    environment:
+      POSTGRES_DB: flatline
+      POSTGRES_USER: cowboy 
+      POSTGRES_PASSWORD: ghost-market
+    ports: ["127.0.0.1:56432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./ghost-market/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U cowboy -d flatline"]
+      interval: 2s
+      timeout: 3s
+      retries: 40
+  kafka:
+    image: apache/kafka:4.2.1
+    hostname: kafka
+    environment:
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LISTENERS: CONTROLLER://:9093,INTERNAL://:29092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 2
+    volumes: ["kafkadata:/var/lib/kafka/data"]
+    healthcheck:
+      test: [CMD-SHELL, "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:29092 --list >/dev/null 2>&1"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+  connect:
+    image: quay.io/debezium/connect:3.3.1.Final
+    ports: ["127.0.0.1:28083:8083"]
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: ghost-market-connect
+      CONFIG_STORAGE_TOPIC: ghost-market-config
+      OFFSET_STORAGE_TOPIC: ghost-market-offset
+      STATUS_STORAGE_TOPIC: ghost-market-status
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_FLUSH_INTERVAL_MS: 1000
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+    depends_on:
+      postgres: {condition: service_healthy}
+      kafka: {condition: service_healthy}
+    healthcheck:
+      test: [CMD-SHELL, "curl -fsS http://localhost:8083/connectors >/dev/null"]
+      interval: 3s
+      timeout: 5s
+      retries: 60
+  kcat:
+    image: edenhill/kcat:1.7.1
+    profiles: [tools]
+  checker:
+    image: ghcr.io/cra/checker-npl-rt1-lab01:2026
+    profiles: [check]
+    env_file:
+      - checker.env
+    stdin_open: true
+    tty: true
+volumes:
+  pgdata:
+  kafkadata:

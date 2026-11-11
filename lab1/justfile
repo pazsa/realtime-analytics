@@ -1,0 +1,33 @@
+set shell := ["bash", "-euo", "pipefail", "-c"]
+
+default:
+    @just --justfile "{{justfile()}}" --list
+
+# Raise a stand.
+up:
+    docker compose up -d --wait postgres kafka connect
+    docker compose pull kcat
+
+# Register connector.
+register:
+    python3 ghost-market/control.py register
+
+# Check connector / tasks.
+status:
+    python3 ghost-market/control.py status
+
+# Consume events.
+watch:
+    docker compose run --rm -T kcat -b kafka:29092 -t ghost_market.public.orders -C -o beginning -J
+
+# Open SQL console 
+sql:
+    docker compose exec postgres psql -U cowboy -d ghost_market
+
+# Connect Logs.
+logs:
+    docker compose logs --tail=100 connect
+
+# Down a stand with data saving
+down:
+    docker compose down

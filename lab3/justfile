@@ -1,0 +1,29 @@
+set shell := ["bash", "-eu", "-o", "pipefail", "-c"]
+
+python:
+   CLICKHOUSE_URL=http://127.0.0.1:18132 uv run --frozen uvicorn app:app --host 127.0.0.1 --port 8000 --workers 1 --no-access-log
+
+db:
+    cp app.py lab03-api.py
+    docker compose -f compose.yaml up -d --wait
+    docker compose exec -T clickhouse clickhouse-client --user lab02-admin --password lab02-local --query 'CREATE DATABASE IF NOT EXISTS lab02'
+
+file path:
+    docker compose exec -T clickhouse clickhouse-client --user lab02-admin --password lab02-local --database lab02 --multiquery --echo --format PrettyCompact < {{quote(path)}}
+
+setup:
+    @just file sql/init-db-users.sql
+    @just file sql/create-tables.sql
+    @just file sql/grant-access.sql
+
+sql:
+    docker compose exec clickhouse clickhouse-client --user lab02-admin --password lab02-local --database lab02
+
+down:
+    docker compose down
+
+watch:
+    docker compose -f compose.yaml run --rm -T kcat -b kafka:9092 -t lab02.orders -C -o beginning -J
+
+check *args:
+    docker compose -f compose.yaml -f lab03-compose.yaml -f lab03-ipv4.yaml run --rm checker03 {{args}}
