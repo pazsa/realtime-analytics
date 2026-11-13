@@ -12,3 +12,7 @@ dependencies = [
 
 [tool.setuptools]
 py-modules = []
+
+[tool.pytest.ini.options]
+pythonpath = ["."]
+testpasts = ["tests"]

@@ -77,9 +77,8 @@ services:
       retries: 40
 
   api:
-    build:
-      context: .
-      dockerfile: lab03-Dockerfile
+    image: ghcr.io/pazsa:fastapi:latest
+    pull_policy: always
     environment:
       CLICKHOUSE_URL: http://clickhouse:8123
       CLICKHOUSE_DATABASE: lab02

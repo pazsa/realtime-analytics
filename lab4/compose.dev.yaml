@@ -1,0 +1,7 @@
+# Local development override: build the api image from source instead of pulling from GHCR.
+# Usage: docker compose -f compose.yaml -f compose.dev.yaml up -d --build api
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile

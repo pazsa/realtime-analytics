@@ -1,19 +1,20 @@
 import asyncio
 import logging
 import os
-import clickhouse_connect
-import httpx
 import time
-
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime, timedelta
 from pathlib import Path as FilePath
 from typing import Annotated, Literal
-from datetime import UTC, datetime, timedelta
+
+import clickhouse_connect
+import httpx
 from clickhouse_connect.driver.exceptions import ClickHouseError
-from fastapi import FastAPI, HTTPException, Query, Request, Path
+from fastapi import FastAPI, HTTPException, Path, Query, Request
 from fastapi.responses import Response
-from pydantic import BaseModel, ConfigDict, Field, AwareDatetime, model_validator
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
+
 from cache import TTLCache
 
 CLICKHOUSE_URL = os.getenv("CLICKHOUSE_URL", "http://clickhouse:8123")
