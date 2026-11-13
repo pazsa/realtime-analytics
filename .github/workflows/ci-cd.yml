@@ -1,12 +1,21 @@
-# CI: lint + tests on every push and pull request.
+# Place this file at the REPOSITORY ROOT: .github/workflows/ci-cd.yml
+# The project itself stays in the lab4/ subfolder.
+#
+# CI: lint + tests on every push and pull request that touches lab4/.
 # CD: build the image, smoke-test it, and publish to GHCR on pushes to main.
 
-name: CI/CD
+name: CI/CD (lab4)
 
 on:
   push:
     branches: [main]
+    paths:
+      - "lab4/**"
+      - ".github/workflows/ci-cd.yml"
   pull_request:
+    paths:
+      - "lab4/**"
+      - ".github/workflows/ci-cd.yml"
 
 permissions:
   contents: read
@@ -14,12 +23,16 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lab4
     steps:
       - uses: actions/checkout@v4
 
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+          cache-dependency-glob: lab4/uv.lock
 
       # Fails if uv.lock is out of sync with pyproject.toml
       - name: Install dependencies
@@ -49,8 +62,8 @@ jobs:
       - name: Build image (kept local for the smoke test)
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: Dockerfile
+          context: ./lab4
+          file: lab4/Dockerfile
           load: true
           push: false
           tags: ${{ env.IMAGE }}:ci
@@ -83,8 +96,8 @@ jobs:
         if: github.event_name == 'push'
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: Dockerfile
+          context: ./lab4
+          file: lab4/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
